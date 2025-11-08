@@ -39,8 +39,34 @@ chmod 600 /home/comfy/.ssh/authorized_keys
 chown comfy:comfy /home/comfy/.ssh/authorized_keys
 
 if grep -lq '^0x1002$' /sys/class/drm/renderD*/device/vendor 2>/dev/null; then
-  log_message "Adding user comfy to group kvm to access AMD device ..."
-  usermod -a -G kvm comfy
+    log_message "Creating groups and adding user comfy to all needed groups to access AMD device ..."
+    for DEV in /dev/kfd $(ls -1 /dev/dri/{card,render}*); do
+        if [[ ! -e "$DEV" ]]; then
+            log_message  "Error: Device $DEV does not exist"
+            break
+        fi
+        gid="$(stat -c %g "$DEV")"
+        if getent group "$gid" >/dev/null; then
+          gname="$(getent group "$gid" | cut -d: -f1)"
+          log_message "OK: Group already exist: $gname (GID $gid)"
+          usermod -a -G $gname comfy
+          continue
+        fi
+        candidate="kfd"
+        if getent group "$candidate" >/dev/null; then
+          candidate="kfd-$gid"
+        fi
+        sudo_cmd=""
+        if [[ "$EUID" -ne 0 ]]; then
+          sudo_cmd="sudo"
+        fi
+        $sudo_cmd groupadd -g "$gid" "$candidate"
+        log_message "Created group $candidate (GID $gid) für $DEV"
+        usermod -a -G $candidate comfy
+    done
+    log_message "Devices and comfy user information:"
+    ls -all /dev/kfd $(ls -1 /dev/dri/{card,render}*)
+    id comfy
 fi
 
 # Setup Tailscale connectivity
