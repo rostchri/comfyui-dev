@@ -80,6 +80,7 @@ FROM tailscale-setup AS final
 # Copy startup scripts and configuration files
 COPY ./docker/scripts/ /home/comfy/startup/scripts/
 COPY ./config/ /home/comfy/startup/config/
+COPY ./aux/ /usr/local/bin/
 RUN chmod +x /home/comfy/startup/scripts/*.sh && \
     chmod +x /home/comfy/startup/scripts/modules/*.sh && \
     ln -sf /home/comfy/startup/scripts/utils.sh /home/comfy/startup/utils.sh && \
