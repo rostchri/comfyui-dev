@@ -70,6 +70,13 @@ if [[ "${COMFY_DEV_ROLE}" == "LEADER" ]]; then
         log_error "Failed to install project requirements"
         exit 1
     }
+
+    if [ -r /home/comfy/ComfyUI/custom_nodes/requirements.txt ]; then
+        log_message "Installing project requirements from /home/comfy/ComfyUI/custom_nodes/requirements.txt ..."
+        ${UV_PATH} pip install -r /home/comfy/ComfyUI/custom_nodes/requirements.txt || {
+            log_error "Failed to install some requirements from /home/comfy/ComfyUI/custom_nodes/requirements.txt ... "
+        }
+    fi
     
     log_message "Installing onnxruntime..."
     ${UV_PATH} pip install onnxruntime || {
