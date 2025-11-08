@@ -8,6 +8,9 @@ LABEL version="0.2" \
 ENV DEBIAN_FRONTEND=noninteractive \
     SHELL=/bin/bash
 
+# To see all errors in build phase
+SHELL ["/bin/bash","-o","pipefail","-c"]
+
 # Initial packages for repository management
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -40,6 +43,7 @@ RUN apt-get update -y && \
         lsb-release \
         lsyncd \
         rsync \
+        rclone \
         bash && \
     ln -s /usr/lib/python3/dist-packages/apt_pkg.cpython-*-x86_64-linux-gnu.so /usr/lib/python3/dist-packages/apt_pkg.so && \
     apt-get clean && \
