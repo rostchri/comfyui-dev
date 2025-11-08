@@ -38,6 +38,11 @@ echo "$COMFY_DEV_SSH_PUBKEY" > /home/comfy/.ssh/authorized_keys
 chmod 600 /home/comfy/.ssh/authorized_keys
 chown comfy:comfy /home/comfy/.ssh/authorized_keys
 
+if grep -lq '^0x1002$' /sys/class/drm/renderD*/device/vendor 2>/dev/null; then
+  log_message "Adding user comfy to group kvm to access AMD device ..."
+  usermod -a -G kvm comfy
+fi
+
 # Setup Tailscale connectivity
 log_message "Connecting to tailscale..."
 mkdir -p /run/sshd
@@ -58,7 +63,7 @@ fi
 
 # Start tailscaled daemon
 log_message "Starting tailscaled daemon..."
-tailscaled --tun=userspace-networking --statedir=/workspace/.tailscale/${COMFY_DEV_TAILSCALE_MACHINENAME} & 
+tailscaled -verbose 0 -no-logs-no-support --tun=userspace-networking --statedir=/workspace/.tailscale/${COMFY_DEV_TAILSCALE_MACHINENAME} 2>/dev/null & 
 TAILSCALED_PID=$!
 
 # Verify tailscaled is running
