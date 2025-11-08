@@ -51,12 +51,22 @@ if [[ "${COMFY_DEV_ROLE}" == "LEADER" ]]; then
         exit 1
     }
     
-    log_message "Installing PyTorch..."
-    ${UV_PATH} pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128 || {
-        log_error "Failed to install PyTorch"
-        exit 1
-    }
-    
+    if grep -lq '^0x1002$' /sys/class/drm/renderD*/device/vendor 2>/dev/null; then
+        log_message "Installing PyTorch for AMD ..."
+        # https://download.pytorch.org/whl/nightly/rocm7.0
+        # https://download.pytorch.org/whl/rocm7.1
+        ${UV_PATH} pip install --pre torch torchvision torchaudio --index-url  https://download.pytorch.org/whl/rocm7.1 || {
+           log_error "Failed to install PyTorch for rocm ..."
+           exit 1
+        }
+    else
+        log_message "Installing PyTorch for Nvidia ..."
+        ${UV_PATH} pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu128 || {
+           log_error "Failed to install PyTorch for cu128"
+           exit 1
+        }
+    fi
+
     log_message "Installing project requirements..."
     ${UV_PATH} pip install -r requirements.txt || {
         log_error "Failed to install project requirements"
