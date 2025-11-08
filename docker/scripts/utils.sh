@@ -301,12 +301,52 @@ verify_dir() {
 # SYNC HELPERS
 #---------------------------------------------------------------
 
+# Sync using backblaze 
+sync_backblaze() {
+    if [ -n "${COMFY_DEV_BACKBLAZE_APPLICATION_KEY}" -a -n "$COMFY_DEV_BACKBLAZE_BUCKET_NAME" -a -n "${COMFY_DEV_BACKBLAZE_APPLICATION_KEY_ID}" ]; then
+       sudo -u comfy mkdir -p /home/comfy/.config/rclone
+       sudo -u comfy cat > /home/comfy/.config/rclone/rclone.conf << EOF
+[bb]
+type = b2
+account = ${COMFY_DEV_BACKBLAZE_APPLICATION_KEY_ID}
+key = ${COMFY_DEV_BACKBLAZE_APPLICATION_KEY}
+EOF
+       DIRECTION=""
+       if [   "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "push" -o "${1:-}" = "push" ]; then
+          DIRECTION="/home/comfy bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}"
+       elif [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "pull" -o "${1:-}" = "pull" ]; then
+          DIRECTION="bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME} /home/comfy"
+       fi
+       if [ -n "${DIRECTION}" ]; then
+          log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/custom_nodes/** /ComfyUI/models/**)"
+          printf '%s\n' \
+            '+ /ComfyUI/custom_nodes/**' \
+            '+ /ComfyUI/models/**' \
+            '- **/__pycache__/**' \
+            '- **/*.pyc' \
+            '- **'     | sudo -u comfy rclone sync ${DIRECTION} --filter-from - -P --links --fast-list --transfers 32 --checkers 32 --multi-thread-streams 8 --multi-thread-cutoff 64M
+          if [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "push" -o "${1:-}" = "push" ]; then
+             log_message "Backblaze copying [$DIRECTION] (/ComfyUI/synced_models/**)"
+             printf '%s\n' \
+               '+ /synced_models/**' \
+               '- **/__pycache__/**' \
+               '- **/*.pyc' \
+               '- **'  | sudo -u comfy rclone copy ${DIRECTION}/ComfyUI --checksum --filter-from - -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+          fi
+       else
+          log_message "Skipped Backblaze syncing (no direction given, use push or pull)"
+       fi
+    else
+       log_message "Skipped Backblaze syncing (no backblaze configuration defined)"
+    fi
+}
+
 # Sync directories using rsync - exits on failure via trap
 sync_dirs() {
-    local source_dir="$1"
-    local target_dir="$2"
-    local description="${3:-directories}"
-
+ local source_dir="$1"
+ local target_dir="$2"
+ local description="${3:-directories}"
+ if [ "$COMFY_DEV_WORSPACE_SYNC" = "true" ]; then
     log_message "Syncing $description from $source_dir to $target_dir"
     
     if [ -z "$source_dir" ] || [ -z "$target_dir" ]; then
@@ -325,6 +365,9 @@ sync_dirs() {
     rsync -a --delete "$source_dir/" "$target_dir/"
     
     log_success "Successfully synced $description"
+  else
+    log_message "Skipping workspace sync ($description)"
+  fi
 }
 
 # Verify lsyncd configuration file - exits on failure
@@ -352,6 +395,7 @@ verify_lsyncd_config() {
 
 # Start lsyncd service - exits on failure via trap
 start_lsyncd() {
+ if [ "$COMFY_DEV_WORSPACE_SYNC" = "true" ]; then
     local config_file="$1"
     
     verify_lsyncd_config "$config_file"
@@ -371,6 +415,9 @@ start_lsyncd() {
     fi
     
     log_success "Lsyncd started with PID $lsyncd_pid"
+ else
+    log_message "Skip start of Lsyncd"
+ fi
 }
 
 # Check if process is running - exits on failure if check_critical=true
