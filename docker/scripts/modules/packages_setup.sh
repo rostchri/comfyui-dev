@@ -52,10 +52,8 @@ if [[ "${COMFY_DEV_ROLE}" == "LEADER" ]]; then
     }
     
     if grep -lq '^0x1002$' /sys/class/drm/renderD*/device/vendor 2>/dev/null; then
-        log_message "Installing PyTorch for AMD ..."
-        # https://download.pytorch.org/whl/nightly/rocm7.0
-        # https://download.pytorch.org/whl/rocm7.1
-        ${UV_PATH} pip install --pre torch torchvision torchaudio --index-url  https://download.pytorch.org/whl/rocm7.1 || {
+        log_message "Installing PyTorch (based on ${COMFY_DEV_ROCM_TORCH_URL}) for AMD ..."
+        ${UV_PATH} pip install --pre torch torchvision torchaudio --index-url ${COMFY_DEV_ROCM_TORCH_URL} || {
            log_error "Failed to install PyTorch for rocm ..."
            exit 1
         }
