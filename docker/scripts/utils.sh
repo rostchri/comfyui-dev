@@ -325,7 +325,7 @@ EOF
             '- **/__pycache__/**' \
             '- **/*.pyc' \
             '- **'     | sudo -u comfy rclone sync ${DIRECTION} --filter-from - -P --links --fast-list --transfers 32 --checkers 32 --multi-thread-streams 8 --multi-thread-cutoff 64M
-          if [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "push" -o "${1:-}" = "push" ]; then
+          if [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "push" -o "${1:-}" = "push" -a -d /home/comfy/synced_models ]; then
              log_message "Backblaze copying [$DIRECTION] (/ComfyUI/synced_models/**)"
              sudo -u  comfy rclone copy /home/comfy/synced_models bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/models \
                                                                    --checksum   -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
