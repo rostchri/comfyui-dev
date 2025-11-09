@@ -71,6 +71,13 @@ if ls /dev/nvidiactl /dev/nvidia0 >/dev/null 2>&1 || ls /dev/kfd /dev/dri/render
       #export AMD_LOG_LEVEL=4          # HIP-Runtime-Logs
       #export HSAKMT_DEBUG_LEVEL=6     # libhsakmt Logs
       #export HIP_LAUNCH_BLOCKING=1    # Synchronisiert Kernelstarts
+
+      # https://github.com/comfyanonymous/ComfyUI/issues/10369
+      #export HSA_ENABLE_SDMA="0"
+      #export PYTORCH_ALLOC_CONF="max_split_size_mb:512"
+      #export PYTORCH_HIP_ALLOC_CONF="max_split_size_mb:512"
+      #export PYTORCH_HIP_FORCE_SHUTDOWN="1"
+
       #python -c "import torch; torch.randn(1, device='cuda')"
       # export LD_LIBRARY_PATH=$(echo "$LD_LIBRARY_PATH" | tr ':' '\n' | grep -v '^/opt/rocm' | paste -sd: -)
       # bevorzugt die wheel libs aus venv
@@ -80,7 +87,15 @@ if ls /dev/nvidiactl /dev/nvidia0 >/dev/null 2>&1 || ls /dev/kfd /dev/dri/render
       #print(str(p))
       #PY
       #):${LD_LIBRARY_PATH}"
-      if [ -n "${COMFY_DEV_EXTRA_ARGS:-}" ]; then
+
+      if [ -r "/home/comfy/.extra_env" ]; then
+        # read specific environment variables from file to optimize amd gpu/torch/rocm (examples: see above)
+        source "/home/comfy/.extra_env"
+      fi
+      if [ -r "/home/comfy/.extra_args" ]; then
+        # read specific start arguments from file to optimize amd gpu/torch/rocm
+        HCC_AMDGPU_TARGET=gfx1100 python main.py --listen "0.0.0.0" $(cat /home/comfy/.extra_args)
+      elif [ -n "${COMFY_DEV_EXTRA_ARGS:-}" ]; then
         #HSA_OVERRIDE_GFX_VERSION=11.0.0 HCC_AMDGPU_TARGET=gfx1100 TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=1 python main.py --listen "0.0.0.0" ${COMFY_DEV_EXTRA_ARGS} --use-pytorch-cross-attention --disable-smart-memory
         HCC_AMDGPU_TARGET=gfx1100 python main.py --listen "0.0.0.0" ${COMFY_DEV_EXTRA_ARGS}
       else
