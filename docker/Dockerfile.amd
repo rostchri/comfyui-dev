@@ -2,6 +2,9 @@
 #FROM rocm/pytorch:rocm7.1_ubuntu24.04_py3.12_pytorch_release_2.8.0 AS base
 #ENV COMFY_DEV_ROCM_TORCH_URL=https://download.pytorch.org/whl/nightly/rocm7.0
 
+#FROM lonceg/comfyui_for_amd:rocm7.0_pytorch2.8_py3.12  AS base
+#ENV COMFY_DEV_ROCM_TORCH_URL=https://download.pytorch.org/whl/nightly/rocm7.0
+
 FROM rocm/pytorch:rocm6.4.4_ubuntu24.04_py3.12_pytorch_release_2.7.1 AS base
 ENV COMFY_DEV_ROCM_TORCH_URL=https://download.pytorch.org/whl/rocm6.4
 
@@ -80,8 +83,8 @@ FROM tailscale-setup AS final
 
 # Copy startup scripts and configuration files
 COPY ./docker/scripts/ /home/comfy/startup/scripts/
-COPY ./config/ /home/comfy/startup/config/
-COPY ./aux/ /usr/local/bin/
+COPY ./config/         /home/comfy/startup/config/
+COPY ./docker/aux/     /usr/local/bin/
 RUN chmod +x /home/comfy/startup/scripts/*.sh && \
     chmod +x /home/comfy/startup/scripts/modules/*.sh && \
     ln -sf /home/comfy/startup/scripts/utils.sh /home/comfy/startup/utils.sh && \
