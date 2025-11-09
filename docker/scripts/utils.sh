@@ -320,15 +320,45 @@ EOF
        if [ -n "${DIRECTION}" ]; then
           log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/custom_nodes/** /ComfyUI/models/**)"
           printf '%s\n' \
-            '+ /ComfyUI/custom_nodes/**' \
-            '+ /ComfyUI/models/**' \
-            '- **/__pycache__/**' \
-            '- **/*.pyc' \
-            '- **'     | sudo -u comfy rclone sync ${DIRECTION} --filter-from - -P --links --fast-list --transfers 32 --checkers 32 --multi-thread-streams 8 --multi-thread-cutoff 64M
-          if [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "push" -o "${1:-}" = "push" -a -d /home/comfy/synced_models ]; then
-             log_message "Backblaze copying [$DIRECTION] (/ComfyUI/synced_models/**)"
-             sudo -u  comfy rclone copy /home/comfy/synced_models bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/models \
-                                                                   --checksum   -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             '+ /ComfyUI/custom_nodes/**' \
+             '+ /ComfyUI/models/**' \
+             '- **/__pycache__/**' \
+             '- **/*.pyc' \
+             '- **'     | sudo -u comfy rclone sync ${DIRECTION} --filter-from - --checksum -P --links --fast-list --transfers 32 --checkers 32 --multi-thread-streams 8 --multi-thread-cutoff 64M
+
+          if [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "pull" -o "${1:-}" = "pull" ]; then
+             log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/user/default/workflows)"
+             sudo -u comfy rclone sync bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/workflows /home/comfy/ComfyUI/user/default/workflows \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/input)"
+             sudo -u comfy rclone sync bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/input /home/comfy/ComfyUI/input \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/output)"
+             sudo -u comfy rclone sync bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/input /home/comfy/ComfyUI/output \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+          fi
+
+          if [ "${COMFY_DEV_BACKBLAZE_SYNC_DIRECTION}" = "push" -o "${1:-}" = "push" ]; then
+             if [  -d /home/comfy/synced_models ]; then
+                log_message "Backblaze copying [$DIRECTION] (/ComfyUI/synced_models)"
+                sudo -u comfy rclone copy /home/comfy/synced_models bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/models \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             fi
+             if [  -d /home/comfy/ComfyUI/input ]; then
+                 log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/input)"
+                 sudo -u comfy rclone sync /home/comfy/ComfyUI/input bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/input \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             fi
+             if [  -d /home/comfy/ComfyUI/output ]; then
+                 log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/output)"
+                 sudo -u comfy rclone sync /home/comfy/ComfyUI/output bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/output \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             fi
+             if [  -d /home/comfy/ComfyUI/user/default/workflows ]; then
+                log_message "Backblaze syncing [$DIRECTION] (/ComfyUI/user/default/workflows)"
+                sudo -u comfy rclone sync /home/comfy/ComfyUI/user/default/workflows bb:${COMFY_DEV_BACKBLAZE_BUCKET_NAME}/ComfyUI/workflows \
+                                                                                   --checksum -P --links --fast-list --transfers 32 --checkers 16 --multi-thread-streams 8 --multi-thread-cutoff 64M
+             fi
           fi
        else
           log_message "Skipped Backblaze syncing (no direction given, use push or pull)"
